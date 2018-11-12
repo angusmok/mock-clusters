@@ -67,8 +67,9 @@ age_width_gauss = np.power(10, 8.0)
 age_base_infant = 5.0 # 10.0 = 90% (equivalent to continuous_logspace), 5.0 = 80%, 1.0 = 10%
 
 # Mass Distribution Parameters
-mass_distribution = [1E3, 1E8]
-mass_distribution_numbin = 100
+# mass_distribution = [1E3, np.power(10, 8)]
+mass_distribution = [1E2, np.power(10, 7)]
+mass_distribution_numbin = 200
 mass_distribution_trun7 = 1E7
 mass_distribution_trun6 = 1E6
 mass_distribution_trun5 = 1E5
@@ -90,10 +91,25 @@ age_bins_lin = np.linspace(1E5, 1E10, num = 21)
 age_range_lin = [1E5, 1E10]
 ###
 colour_range = [-2, 10]
+# Flag for outputs (0 = none, 1 = basic, 2 = full)
 output_contlin = 0
 output_contlog = 1
 output_gauss = 0
 output_infant = 0
+
+# Completeness Limits from Galaxies
+Ant_SC_complimits = [np.power(10, 4.0), np.power(10, 4.25), np.power(10, 4.5)]
+LMC_SC_complimits = [np.power(10, 2.5), np.power(10, 3.2), np.power(10, 3.25)]
+M31_SC_complimits = [740., 740., 1080.]
+M33_SC_complimits = [np.power(10, 2.5), np.power(10, 2.8), np.power(10, 3.2)]
+M51_SC_complimits = [np.power(10, 3.5), np.power(10, 3.9), np.power(10, 4.0)]
+M83_SC_complimits = [np.power(10, 3.3), np.power(10, 3.7), np.power(10, 4.0)]
+NGC3256_SC_complimits = [np.power(10, 4.3), np.power(10, 4.9), np.power(10, 5.3)]
+NGC4214_SC_complimits = [np.power(10, 2.5), np.power(10, 3.0), np.power(10, 3.0)]
+NGC4449_SC_complimits = [np.power(10, 3.4), np.power(10, 4.0), np.power(10, 4.0)]
+SMC_SC_complimits = [np.power(10, 2.5), np.power(10, 3.2), np.power(10, 3.25)]
+Test_SC_complimits = [np.power(10, 4.0), np.power(10, 4.0), np.power(10, 4.0)]
+Test2_SC_complimits = [np.power(10, 3.7), np.power(10, 3.7), np.power(10, 3.7)]
 
 # Generate Derived Paramters
 random_age = np.random.uniform(size = Ntotal)
@@ -109,6 +125,14 @@ mass_distribution_start = np.nanmin(mass_distribution)
 mass_distribution_end = np.nanmax(mass_distribution)
 mass_distribution_array = np.power(10, np.linspace(np.log10(mass_distribution_start), np.log10(mass_distribution_end), num = mass_distribution_numbin))
 
+# Create directories, if not present
+if not os.path.exists('./Logs/'):
+	os.makedirs('./Logs')
+if not os.path.exists('./SimSCOutput/'):
+	os.makedirs('./SimSCOutput/')
+if not os.path.exists('./SimSCFigures/'):
+	os.makedirs('./SimSCFigures')
+	
 # Other tasks:
 # Duplicates terminal to log file
 import datetime
@@ -126,14 +150,6 @@ class Logger(object):
 		pass    
 
 sys.stdout = Logger()
-
-# Create directories, if not present
-if not os.path.exists('./Logs/'):
-	os.makedirs('./Logs')
-if not os.path.exists('./SimSCOutput/'):
-	os.makedirs('./SimSCOutput/')
-if not os.path.exists('./SimSCFigures/'):
-	os.makedirs('./SimSCFigures')
 
 #------------------------------------------------------------------------------
 ###
@@ -178,6 +194,9 @@ def samplefromdistribution(array1, value1, normfun):
 	for i in range(0, len(array1)):
 		cumulative.append(integrate.quad(normfun, value1, array1[i])[0])
 	cumulative_interp = interpolate.interp1d(cumulative, array1)
+	# print(cumulative)
+	# print(array1)
+	# print(np.nanmax(random_mass))
 	arrayout = cumulative_interp(random_mass)
 
 	# Add in Gaussian noise (15%)
@@ -244,6 +263,18 @@ def vmagmasscorr(vmagarray, array1, array2, array3, array4, array5, array6, arra
 
 	return array1_mcorr, array2_mcorr, array3_mcorr, array4_mcorr, array5_mcorr, array6_mcorr, array7_mcorr, array8_mcorr, array9_mcorr, array10_mcorr, array11_mcorr, array12_mcorr, array13_mcorr, array14_mcorr, array15_mcorr, array16_mcorr, array17_mcorr, array18_mcorr, array19_mcorr, array20_mcorr
 
+# Func: Calculated correction factor for age limits
+def calccorrectionfactor(array1, complimits):
+
+	totalmass = np.sum(array1)
+	print('The total mass in the synthetic cluster catalog is: {:.3e}'.format(totalmass))
+	for i in range(0, len(complimits)):
+
+		restrictedmass = np.sum(array1[array1 > complimits[i]])
+		correctionfactor = restrictedmass / totalmass
+		print('Output: {:.3e}, {:.3f}'.format(restrictedmass, correctionfactor))
+
+
 #------------------------------------------------------------------------------
 ###
 #------------------------------------------------------------------------------
@@ -258,8 +289,8 @@ def vmagmasscorr(vmagarray, array1, array2, array3, array4, array5, array6, arra
 # Step 1 - Create Age Distribution
 ###
 
-print("Step 1 - Create Age Distribution")
-print("A - Continous Formation (log), B - Continuous Formation (linear), C - Gaussian Burst, D - Infant Mortality")
+print('Step 1 - Create Age Distribution')
+print('A - Continous Formation (log), B - Continuous Formation (linear), C - Gaussian Burst, D - Infant Mortality')
 ###
 age_contlog = np.power(10, (np.random.uniform(low = np.log10(age_distribution_start), high = np.log10(age_distribution_end), size = Ntotal)))
 age_contlin = np.random.uniform(low = age_distribution_start, high = age_distribution_end, size = Ntotal)
@@ -276,8 +307,8 @@ age_infant, age_infant_mnoise1, age_infant_mnoise2, age_infant_cumulative = samp
 # Step 2 - Create Mass Distribution
 ###
 
-print("Step 2 - Create Mass Distribution")
-print("A - Power Law, B - Schechter Function, C - Truncated Power Law")
+print('Step 2 - Create Mass Distribution')
+print('A - Power Law, B - Schechter Function')
 ###
 
 # Create Normalized Probability Functions
@@ -304,33 +335,12 @@ schechter7_norm = integrate.quad(schechter7, mass_distribution_start, mass_distr
 schechter7_normfun = lambda x: (np.power(x / mass_distribution_trun7, -2) * np.exp(-(x / mass_distribution_trun7))) / schechter7_norm[0]
 print ('Schechter (1E7) Mass Function Normalization: {:.2e}'.format(schechter7_norm[0]))
 schechter7_mass, schechter7_mass_mnoise1, schechter7_mass_mnoise2, schechter7_cumulative = samplefromdistribution(mass_distribution_array, mass_distribution_start, schechter7_normfun)
-###
-truncated5 = lambda x: np.power(x / mass_distribution_trun5, -2) - 1
-truncated5_norm = integrate.quad(truncated5, mass_distribution_start, mass_distribution_trun5)
-truncated5_normfun = lambda x: (np.power(x / mass_distribution_trun5, -2) - 1) / truncated5_norm[0]
-print ('Truncated (1E5) Mass Function Normalization: {:.2e}'.format(truncated5_norm[0]))
-mass_distribution_array5 = np.power(10, np.linspace(np.log10(mass_distribution_start), 5, num = mass_distribution_numbin))
-truncated5_mass, truncated5_mass_mnoise1, truncated5_mass_mnoise2, truncated5_cumulative = samplefromdistribution(mass_distribution_array5, mass_distribution_start, truncated5_normfun)
-###
-truncated6 = lambda x: np.power(x / mass_distribution_trun6, -2) - 1
-truncated6_norm = integrate.quad(truncated6, mass_distribution_start, mass_distribution_trun6)
-truncated6_normfun = lambda x: (np.power(x / mass_distribution_trun6, -2) - 1) / truncated6_norm[0]
-print ('Truncated (1E6) Mass Function Normalization: {:.2e}'.format(truncated6_norm[0]))
-mass_distribution_array6 = np.power(10, np.linspace(np.log10(mass_distribution_start), 6, num = mass_distribution_numbin))
-truncated6_mass, truncated6_mass_mnoise1, truncated6_mass_mnoise2, truncated6_cumulative = samplefromdistribution(mass_distribution_array6, mass_distribution_start, truncated6_normfun)
-###
-truncated7 = lambda x: np.power(x / mass_distribution_trun7, -2) - 1
-truncated7_norm = integrate.quad(truncated7, mass_distribution_start, mass_distribution_trun7)
-truncated7_normfun = lambda x: (np.power(x / mass_distribution_trun7, -2) - 1) / truncated7_norm[0]
-print ('Truncated (1E7) Mass Function Normalization: {:.2e}'.format(truncated7_norm[0]))
-mass_distribution_array7 = np.power(10, np.linspace(np.log10(mass_distribution_start), 7, num = mass_distribution_numbin))
-truncated7_mass, truncated7_mass_mnoise1, truncated7_mass_mnoise2, truncated7_cumulative = samplefromdistribution(mass_distribution_array7, mass_distribution_start, truncated7_normfun)
 
 ###
 # Step 3 - Read in Model Data
 ###
 
-print("Step 3 - Read in Model Data")
+print('Step 3 - Read in Model Data')
 ###
 
 # M62 = solar metallicity
@@ -343,8 +353,8 @@ vmag_interp = interpolate.interp1d(np.power(10, cb07_basel_m62_chap[:,0]), cb07_
 # Step 4 - Implement Destruction Law
 ###
 
-print("Step 4 - Implement Destruction Law")
-print("A - Mass Dependent, B - Mass Independent")
+print('Step 4 - Implement Destruction Law')
+print('A - Mass Dependent, B - Mass Independent')
 
 # Apply cluster mass destruction laws
 powerlaw_mass_contlog_massinddest, powerlaw_mass_contlin_massinddest, powerlaw_mass_gauss_massinddest, powerlaw_mass_infant_massinddest, powerlaw_mass_contlog_lamerdest, powerlaw_mass_contlin_lamerdest, powerlaw_mass_gauss_lamerdest, powerlaw_mass_infant_lamerdest = massdestruction(powerlaw_mass, dest_rate, dest_gamma, age_contlog, age_contlin, age_gauss, age_infant)
@@ -364,6 +374,50 @@ vmag_contlin_powerlaw_mcorr, vmag_contlin_powerlaw_mnoise1_mcorr, vmag_contlin_p
 vmag_gauss_powerlaw_mcorr, vmag_gauss_powerlaw_mnoise1_mcorr, vmag_gauss_powerlaw_mnoise2_mcorr, vmag_gauss_powerlaw_massinddest_mcorr, vmag_gauss_powerlaw_lamerdest_mcorr, vmag_gauss_schechter5_mcorr, vmag_gauss_schechter5_mnoise1_mcorr, vmag_gauss_schechter5_mnoise2_mcorr, vmag_gauss_schechter5_massinddest_mcorr, vmag_gauss_schechter5_lamerdest_mcorr, vmag_gauss_schechter6_mcorr, vmag_gauss_schechter6_mnoise1_mcorr, vmag_gauss_schechter6_mnoise2_mcorr, vmag_gauss_schechter6_massinddest_mcorr, vmag_gauss_schechter6_lamerdest_mcorr, vmag_gauss_schechter7_mcorr, vmag_gauss_schechter7_mnoise1_mcorr, vmag_gauss_schechter7_mnoise2_mcorr, vmag_gauss_schechter7_massinddest_mcorr, vmag_gauss_schechter7_lamerdest_mcorr = vmagmasscorr(vmag_gauss, powerlaw_mass, powerlaw_mass_mnoise1, powerlaw_mass_mnoise2, powerlaw_mass_gauss_massinddest, powerlaw_mass_gauss_lamerdest, schechter5_mass, schechter5_mass_mnoise1, schechter5_mass_mnoise2, schechter5_mass_gauss_massinddest, schechter5_mass_gauss_lamerdest, schechter6_mass, schechter6_mass_mnoise1, schechter6_mass_mnoise2, schechter6_mass_gauss_massinddest, schechter6_mass_gauss_lamerdest, schechter7_mass, schechter7_mass_mnoise1, schechter7_mass_mnoise2, schechter7_mass_gauss_massinddest, schechter7_mass_gauss_lamerdest)
 vmag_infant_powerlaw_mcorr, vmag_infant_powerlaw_mnoise1_mcorr, vmag_infant_powerlaw_mnoise2_mcorr, vmag_infant_powerlaw_massinddest_mcorr, vmag_infant_powerlaw_lamerdest_mcorr, vmag_infant_schechter5_mcorr, vmag_infant_schechter5_mnoise1_mcorr, vmag_infant_schechter5_mnoise2_mcorr, vmag_infant_schechter5_massinddest_mcorr, vmag_infant_schechter5_lamerdest_mcorr, vmag_infant_schechter6_mcorr, vmag_infant_schechter6_mnoise1_mcorr, vmag_infant_schechter6_mnoise2_mcorr, vmag_infant_schechter6_massinddest_mcorr, vmag_infant_schechter6_lamerdest_mcorr, vmag_infant_schechter7_mcorr, vmag_infant_schechter7_mnoise1_mcorr, vmag_infant_schechter7_mnoise2_mcorr, vmag_infant_schechter7_massinddest_mcorr, vmag_infant_schechter7_lamerdest_mcorr = vmagmasscorr(vmag_infant, powerlaw_mass, powerlaw_mass_mnoise1, powerlaw_mass_mnoise2, powerlaw_mass_infant_massinddest, powerlaw_mass_infant_lamerdest, schechter5_mass, schechter5_mass_mnoise1, schechter5_mass_mnoise2, schechter5_mass_infant_massinddest, schechter5_mass_infant_lamerdest, schechter6_mass, schechter6_mass_mnoise1, schechter6_mass_mnoise2, schechter6_mass_infant_massinddest, schechter6_mass_infant_lamerdest, schechter7_mass, schechter7_mass_mnoise1, schechter7_mass_mnoise2, schechter7_mass_infant_massinddest, schechter7_mass_infant_lamerdest)
 
+###
+# Step 5 - Calculate Correction Values
+###
+
+print('Step 5 - Calculate Correction Values')
+
+print('Antennae')
+calccorrectionfactor(powerlaw_mass, Ant_SC_complimits)
+calccorrectionfactor(schechter5_mass, Ant_SC_complimits)
+print('LMC')
+calccorrectionfactor(powerlaw_mass, LMC_SC_complimits)
+calccorrectionfactor(schechter5_mass, LMC_SC_complimits)
+print('M51')
+calccorrectionfactor(powerlaw_mass, M51_SC_complimits)
+calccorrectionfactor(schechter5_mass, M51_SC_complimits)
+print('M83')
+calccorrectionfactor(powerlaw_mass, M83_SC_complimits)
+calccorrectionfactor(schechter5_mass, M83_SC_complimits)
+print('NGC3256')
+calccorrectionfactor(powerlaw_mass, NGC3256_SC_complimits)
+calccorrectionfactor(schechter5_mass, NGC3256_SC_complimits)
+print('NGC4214')
+calccorrectionfactor(powerlaw_mass, NGC4214_SC_complimits)
+calccorrectionfactor(schechter5_mass, NGC4214_SC_complimits)
+print('NGC4449')
+calccorrectionfactor(powerlaw_mass, NGC4449_SC_complimits)
+calccorrectionfactor(schechter5_mass, NGC4449_SC_complimits)
+print('SMC')
+calccorrectionfactor(powerlaw_mass, SMC_SC_complimits)
+calccorrectionfactor(schechter5_mass, SMC_SC_complimits)
+print('Test (4.0)')
+calccorrectionfactor(powerlaw_mass, Test_SC_complimits)
+calccorrectionfactor(schechter5_mass, Test_SC_complimits)
+print('Test (3.7)')
+calccorrectionfactor(powerlaw_mass, Test2_SC_complimits)
+calccorrectionfactor(schechter5_mass, Test2_SC_complimits)
+
+###
+# Step 6 - Output Cluster Data
+###
+
+print('Step 6 - Output Cluster Data')
+print('A - Mass Dependent, B - Mass Independent')
+
 # Output cluster data information
 if output_contlog > 0:
 
@@ -379,10 +433,6 @@ if output_contlog > 0:
 	outputclusterinformation('schechter7_contlog_nodest', schechter7_mass, age_contlog)
 	# outputclusterinformation('schechter7_contlog_nodest_mnoise1', schechter7_mass_mnoise1, age_contlog)
 	# outputclusterinformation('schechter7_contlog_nodest_mnoise2', schechter7_mass_mnoise2, age_contlog)
-	###
-	outputclusterinformation('truncated5_contlog_nodest', truncated5_mass, age_contlog)
-	outputclusterinformation('truncated6_contlog_nodest', truncated6_mass, age_contlog)
-	outputclusterinformation('truncated7_contlog_nodest', truncated7_mass, age_contlog)
 	###
 	outputclusterinformation('powerlaw_contlin_nodest', powerlaw_mass, age_contlin)
 
@@ -477,10 +527,10 @@ if output_infant > 2:
 	outputclusterinformation('schechter7_infant_lamerdest', schechter7_mass_infant_lamerdest, age_infant)
 
 ###
-# Step 5 - Make Diagnostic Plots
+# Step 7 - Make Diagnostic Plots
 ###
 
-print("Step 5 - Make Diagnostic Plots")
+print('Step 7 - Make Diagnostic Plots')
 ###
 
 print('>>> 00A_Age_Distributions')
@@ -538,7 +588,6 @@ plt.plot(mass_distribution_array, powerlaw(mass_distribution_array) / powerlaw_n
 plt.plot(mass_distribution_array, schechter5(mass_distribution_array) / schechter5_norm[0], 'b-', label = 'Schechter Function (1E5)')
 plt.plot(mass_distribution_array, schechter6(mass_distribution_array) / schechter6_norm[0], 'g-', label = 'Schechter Function (1E6)')
 plt.plot(mass_distribution_array, schechter7(mass_distribution_array) / schechter7_norm[0], 'r-', label = 'Schechter Function (1E7)')
-plt.plot(mass_distribution_array, truncated6(mass_distribution_array) / truncated6_norm[0], 'g:', label = 'Truncated Power Law (1E6)')
 ###
 plt.legend(loc = 'upper right')
 plt.xlabel(r'M [M$_\odot$]')
