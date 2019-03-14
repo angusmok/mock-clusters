@@ -104,7 +104,7 @@ M31_SC_complimits = [740., 740., 1080.]
 M33_SC_complimits = [np.power(10, 2.5), np.power(10, 2.8), np.power(10, 3.2)]
 M51_SC_complimits = [np.power(10, 3.5), np.power(10, 3.9), np.power(10, 4.0)]
 M83_SC_complimits = [np.power(10, 3.3), np.power(10, 3.7), np.power(10, 4.0)]
-NGC3256_SC_complimits = [np.power(10, 4.3), np.power(10, 4.9), np.power(10, 5.3)]
+NGC3256_SC_complimits = [np.power(10, 5.2), np.power(10, 5.2), np.power(10, 5.5)]
 NGC4214_SC_complimits = [np.power(10, 2.5), np.power(10, 3.0), np.power(10, 3.0)]
 NGC4449_SC_complimits = [np.power(10, 3.4), np.power(10, 4.0), np.power(10, 4.0)]
 SMC_SC_complimits = [np.power(10, 2.5), np.power(10, 3.2), np.power(10, 3.25)]
@@ -194,18 +194,15 @@ def samplefromdistribution(array1, value1, normfun):
 	for i in range(0, len(array1)):
 		cumulative.append(integrate.quad(normfun, value1, array1[i])[0])
 	cumulative_interp = interpolate.interp1d(cumulative, array1)
-	# print(cumulative)
-	# print(array1)
-	# print(np.nanmax(random_mass))
 	arrayout = cumulative_interp(random_mass)
 
-	# Add in Gaussian noise (15%)
-	array_noise1 = np.random.normal(loc = 0, scale = arrayout * 0.15, size = len(arrayout))
-	arrayout_mnoise1 = arrayout + array_noise1
+	# Add in Gaussian noise (0.15 dex)
+	array_noise1 = np.random.normal(loc = 0, scale = 0.15, size = len(arrayout))
+	arrayout_mnoise1 = arrayout + np.multiply(np.power(10, array_noise1), arrayout)
 
-	# Add in Gaussian noise (50%)
-	array_noise2 = np.random.normal(loc = 0, scale = arrayout * 0.50, size = len(arrayout))
-	arrayout_mnoise2 = arrayout + array_noise2
+	# Add in Gaussian noise (0.30 dex)
+	array_noise2 = np.random.normal(loc = 0, scale = 0.30, size = len(arrayout))
+	arrayout_mnoise2 = arrayout + np.multiply(np.power(10, array_noise2), arrayout)
 
 	return arrayout, arrayout_mnoise1, arrayout_mnoise2, cumulative
 
@@ -425,8 +422,8 @@ if output_contlog > 0:
 	# outputclusterinformation('powerlaw_contlog_nodest_mnoise1', powerlaw_mass_mnoise1, age_contlog)
 	# outputclusterinformation('powerlaw_contlog_nodest_mnoise2', powerlaw_mass_mnoise2, age_contlog)
 	outputclusterinformation('schechter5_contlog_nodest', schechter5_mass, age_contlog)
-	# outputclusterinformation('schechter5_contlog_nodest_mnoise1', schechter5_mass_mnoise1, age_contlog)
-	# outputclusterinformation('schechter5_contlog_nodest_mnoise2', schechter5_mass_mnoise2, age_contlog)
+	outputclusterinformation('schechter5_contlog_nodest_mnoise1', schechter5_mass_mnoise1, age_contlog)
+	outputclusterinformation('schechter5_contlog_nodest_mnoise2', schechter5_mass_mnoise2, age_contlog)
 	outputclusterinformation('schechter6_contlog_nodest', schechter6_mass, age_contlog)
 	# outputclusterinformation('schechter6_contlog_nodest_mnoise1', schechter6_mass_mnoise1, age_contlog)
 	# outputclusterinformation('schechter6_contlog_nodest_mnoise2', schechter6_mass_mnoise2, age_contlog)

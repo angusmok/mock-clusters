@@ -1,2 +1,2 @@
 # mock-clusters
-# This is code to generate mock cluster catalogues.
+This is python code to generate mock cluster catalogues. Important parameters can be modified in the header section. Further detail will be included in the future.
